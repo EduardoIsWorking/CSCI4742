@@ -7,26 +7,22 @@ def udp_dns_scanner(target, port=53):
    """
    try:
          udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-         udp_sock.settimeout(2.0)  # Add your comment here (e.g., What does `settimeout` do?)
+         udp_sock.settimeout(2.0)
 
          query = b'\x12\x34\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00' \
                b'\x07example\x03com\x00\x00\x01\x00\x01'
-         # Add your comment here (e.g., What is the purpose of the `query` variable?)
 
          udp_sock.sendto(query, (target, port))
 
          response, _ = udp_sock.recvfrom(512)
-         # Add your comment here (e.g., Why use `recvfrom(512)`? What does 512 represent?)
 
          if response:
             print(f"[*] Port {port}/udp (DNS) is open and responding")
             return True
    except socket.timeout:
-         # Add your comment here (e.g., Why is a timeout exception likely in UDP scanning?)
          print(f"[-] Port {port}/udp (DNS) did not respond")
          return False
    finally:
-         # Add your comment here (e.g., Why close the socket in the `finally` block?)
          udp_sock.close()
 
 def main():
