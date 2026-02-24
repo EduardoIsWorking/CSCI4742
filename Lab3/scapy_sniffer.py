@@ -12,21 +12,22 @@
 from scapy.all import sniff, Ether, IP, TCP, UDP
 
 def packet_callback(packet):
-    if TCP in packet and IP in packet and Ether in packet:
-        # Extract MAC, IP, and port details
-        mac_src = packet[Ether].src
-        mac_dst = packet[Ether].dst
+    if TCP in packet and IP in packet:
         ip_src = packet[IP].src
         ip_dst = packet[IP].dst
         tcp_sport = packet[TCP].sport
         tcp_dport = packet[TCP].dport
 
-        # Print packet details
-        print(f"MAC: {mac_src} -> {mac_dst}, IP: {ip_src}:{tcp_sport} -> {ip_dst}:{tcp_dport}")
+        if Ether in packet:
+            mac_src = packet[Ether].src
+            mac_dst = packet[Ether].dst
+            print(f"MAC: {mac_src} -> {mac_dst}, IP: {ip_src}:{tcp_sport} -> {ip_dst}:{tcp_dport}")
+        else:
+            print(f"IP: {ip_src}:{tcp_sport} -> {ip_dst}:{tcp_dport}")
 
 def start_sniffing():
     print("Starting packet sniffing with Scapy...")
-    sniff(prn=packet_callback, filter="tcp", store=0)
+    sniff(iface="eth0", prn=packet_callback, filter="tcp", store=0)
 
 if __name__ == "__main__":
     start_sniffing()
@@ -35,16 +36,12 @@ if __name__ == "__main__":
 
 # 4. Validate the Output
 
-# Screenshots of of the output showing:
-# Captured TCP packets.
-# MAC, IP, and TCP port details.
-
 #
 # ## Task 2: Parsing Ethernet and IP Layers
 
 #
 # 1. Enchance Packet Parsing
-from scapy.all import sniff, Ether
+from scapy.all import sniff, Ether, IP
 
 def parse_ethernet(packet):
     return {
@@ -69,8 +66,7 @@ def packet_callback(packet):
 
 def start_sniffing():
     print("Starting packet sniffing with Scapy (Ethernet + IP)...")
-    # "ip" filter keeps output focused on IP packets
-    sniff(prn=packet_callback, filter="ip", store=0)
+    sniff(iface="eth0", prn=packet_callback, filter="ip", store=0)
 
 if __name__ == "__main__":
     start_sniffing()
@@ -79,17 +75,12 @@ if __name__ == "__main__":
 
 # 3. Validate the Output
 
-# Screenshot of output showing parsed Ethernet and IP layer details.
-# Answer these questions:
-# How does Scapy simplify the extraction of Ethernet and IP layer fields?
-# What is the packet[IP].proto field, and how does it relate to TCP/UDP?
-
 #
 # ## Task 3: Parsing Transport Layer (TCP and UDP)
 
 #
 # 1. Extract TCP Flags
-from scapy.all import TCP, UDP
+from scapy.all import sniff, TCP, UDP
 
 def parse_tcp_flags(packet):
     flags = packet[TCP].flags
@@ -126,8 +117,7 @@ def packet_callback(packet):
 
 def start_sniffing():
     print("Starting packet sniffing with Scapy (TCP or UDP)...")
-    # Capture both transport protocols for this task
-    sniff(prn=packet_callback, filter="tcp or udp", store=0)
+    sniff(iface="eth0", prn=packet_callback, filter="tcp or udp", store=0)
 
 if __name__ == "__main__":
     start_sniffing()
@@ -137,13 +127,6 @@ if __name__ == "__main__":
 # 5. Run the Sniffer
 
 # 6. Run the Sniffer
-
-# Screenshot of the output showing TCP and UDP details, including TCP flags and UDP length.
-# Answer these questions:
-# How do TCP flags help in identifying packet behavior?
-# Why is the length field in UDP important, and how does it differ from TCP's behavior?
-# What are the primary differences between TCP and UDP in terms of reliability and usage?
-# Explain the logic behind a syntax like 'ACK': flags & 0x10 != 0, for identifying whether a flag (e.g. ACK here) is set or not.
 
 #
 # ## Task 4: Dissecting ICMP Packets
@@ -166,9 +149,8 @@ def packet_callback(packet):
         print(f"ICMP Info: {icmp_info}")
 
 def start_sniffing():
-    print("Starting packet sniffing with Scapy (TCP or UDP)...")
-    # Capture both transport protocols for this task
-    sniff(iface="eth0", prn=packet_callback, filter="tcp or udp", store=0)
+    print("Starting packet sniffing with Scapy (ICMP)...")
+    sniff(iface="eth0", prn=packet_callback, filter="icmp", store=0)
 
 if __name__ == "__main__":
     start_sniffing()
@@ -177,45 +159,48 @@ if __name__ == "__main__":
 
 # 3. Validate the Output
 
-# Screenshot of the output showing parsed ICMP packets.
-# Answer these questions:
-# What is the purpose of ICMP packets in networking?
-# How are ICMP type and code fields used to differentiate packet types?
-# What role does the checksum play in ICMP packets?
-
 #
 # ## Task 5: Parsing HTTP Packets
 
 #
 # 1. Capture HTTP Payload
+from scapy.all import sniff, TCP, Raw
+
 def parse_http(packet):
     try:
-        payload = bytes(packet[TCP].payload).decode('utf-8')
+        # Only attempt decode if there is application payload
+        if Raw not in packet:
+            return None
+
+        payload = packet[Raw].load.decode('utf-8', errors='ignore')
         return payload if "HTTP" in payload else None
-    except UnicodeDecodeError:
+    except Exception:
         return None
 
 def packet_callback(packet):
     if TCP in packet and (packet[TCP].sport == 80 or packet[TCP].dport == 80):
         http_data = parse_http(packet)
         if http_data:
-            print(f"HTTP Data: {http_data[:100]}")
+            print(f"HTTP Data: {http_data[:200]}")
+            print("-" * 60)
+
+def start_sniffing():
+    print("Starting packet sniffing with Scapy (HTTP/80)...")
+    sniff(iface="eth0", prn=packet_callback, filter="tcp port 80", store=0)
+
+if __name__ == "__main__":
+    start_sniffing()
 
 # 2. Generate Test Traffic
 
 # 3. Validate the Output
-
-# Screenshot of output showing HTTP payload data for packets on port 80.
-# Answer these questions:
-# Why does HTTP operate on port 80 by default?
-# What common HTTP methods (e.g., GET, POST) could you identify in the parsed payload?
-# What challenges might arise when decoding HTTP data in raw packet captures?
 
 #
 # ## Task 6: Parsing DNS Packets
 
 #
 # 1. Capture DNS Packets
+from scapy.all import sniff
 from scapy.layers.dns import DNS
 
 def parse_dns(packet):
@@ -233,14 +218,13 @@ def packet_callback(packet):
         dns_info = parse_dns(packet)
         print(f"DNS Info: {dns_info}")
 
+def start_sniffing():
+    print("Starting packet sniffing with Scapy (DNS)...")
+    sniff(iface="eth1", prn=packet_callback, filter="udp port 53 or tcp port 53", store=0)
+
+if __name__ == "__main__":
+    start_sniffing()
+
 # 2. Generate Test Traffic
 
 # 3. Validate the Output
-
-# Screenshot of output showing DNS transaction ID, question count, and resource records.
-# Answer these questions:
-# What is the significance of the transaction ID in DNS packets?
-# How do the flags in a DNS packet indicate the type of query (e.g., standard query, response)?
-# Why does DNS primarily use UDP instead of TCP, and under what circumstances might it use TCP?
-
-
