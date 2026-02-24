@@ -168,7 +168,7 @@ def packet_callback(packet):
 def start_sniffing():
     print("Starting packet sniffing with Scapy (TCP or UDP)...")
     # Capture both transport protocols for this task
-    sniff(prn=packet_callback, filter="tcp or udp", store=0)
+    sniff(iface="eth0", prn=packet_callback, filter="tcp or udp", store=0)
 
 if __name__ == "__main__":
     start_sniffing()
